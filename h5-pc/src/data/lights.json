@@ -1,0 +1,20 @@
+[
+  { "id": "open_headlight", "trigger": "请开启前照灯", "action": "近光", "category": "开灯类", "tip": "必考首项，禁止直接开远光灯，只开示廓灯直接挂科", "audio": "q1_kaideng.mp3" },
+  { "id": "follow_car", "trigger": "夜间同方向近距离跟车行驶", "action": "近光", "category": "近光保持类", "tip": "远光切近光，避免晃前车", "audio": "q2_genche.mp3" },
+  { "id": "good_lighting", "trigger": "夜间在有路灯、照明良好道路行驶", "action": "近光", "category": "近光保持类", "tip": "保持近光，禁止开远光", "audio": "q3_ludeng.mp3" },
+  { "id": "signal_crossroad", "trigger": "夜间直行通过路口", "action": "近光", "category": "近光保持类", "tip": "保持近光，无需额外操作", "audio": "q4_zhixing.mp3" },
+  { "id": "meet_car", "trigger": "夜间与机动车会车", "action": "近光", "category": "近光保持类", "tip": "会车场景全程近光，禁止远光", "audio": "q5_huiche.mp3" },
+  { "id": "meet_narrow", "trigger": "夜间在窄路、窄桥与非机动车会车", "action": "近光", "category": "近光保持类", "tip": "所有会车场景均为近光，记混直接挂科", "audio": "q6_zhailu.mp3" },
+  { "id": "sharp_curve", "trigger": "夜间通过急弯、坡路、拱桥", "action": "远近交替", "category": "远近交替类", "tip": "闪烁2次，结束必须停在近光状态", "audio": "q7_jiwan.mp3" },
+  { "id": "crosswalk", "trigger": "夜间通过人行横道", "action": "远近交替", "category": "远近交替类", "tip": "闪烁2次，结束必须停在近光状态", "audio": "q8_renxing.mp3" },
+  { "id": "no_signal_crossroad", "trigger": "夜间通过没有交通信号灯控制的路口", "action": "远近交替", "category": "远近交替类", "tip": "闪烁2次，结束必须停在近光状态", "audio": "q9_wudeng.mp3" },
+  { "id": "overtake", "trigger": "夜间超越前方车辆", "action": "远近交替", "category": "远近交替类", "tip": "闪烁2次，结束必须停在近光状态", "audio": "q10_chaoyue.mp3" },
+  { "id": "bad_lighting", "trigger": "夜间在没有路灯、照明不良条件下行驶", "action": "远光", "category": "远光类", "tip": "向前推操纵杆，远光常亮", "audio": "q11_zhaoliang.mp3" },
+  { "id": "to_high_beam", "trigger": "请将前照灯变换成远光", "action": "远光", "category": "远光类", "tip": "单独指令，切换为远光常亮", "audio": "q12_bianyuan.mp3" },
+  { "id": "temp_stop", "trigger": "路边临时停车", "action": "示廓灯+双闪", "category": "停车/故障类", "tip": "停车后必须开启，模拟结束前不要关闭", "audio": "q13_lubian.mp3" },
+  { "id": "breakdown", "trigger": "夜间在道路上发生故障、妨碍交通又难以移动", "action": "示廓灯+双闪", "category": "停车/故障类", "tip": "操作与临时停车一致", "audio": "q14_guzhang.mp3" },
+  { "id": "fog", "trigger": "雾天行驶", "action": "雾灯+双闪+近光", "category": "特殊天气类", "tip": "朔州较少考，但需留意本地规则", "audio": "q15_wutian.mp3" },
+  { "id": "turn_left", "trigger": "夜间路口左转弯", "action": "近光+左转", "category": "转向类", "tip": "转向灯需开启3秒后再操作转向", "audio": "q16_zuozhuan.mp3" },
+  { "id": "turn_right", "trigger": "夜间路口右转弯", "action": "近光+右转", "category": "转向类", "tip": "转向灯需开启3秒后再操作转向", "audio": "q17_youzhuan.mp3" },
+  { "id": "close_all", "trigger": "模拟夜间考试完成，请关闭所有灯光", "action": "全部复位", "category": "结束类", "tip": "最后一项必须归零，否则直接挂科", "audio": "q18_guanbi.mp3" }
+]

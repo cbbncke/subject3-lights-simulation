@@ -1,0 +1,86 @@
+*{box-sizing:border-box}
+body{font-family:Inter, Arial, Helvetica, sans-serif;background:#f5f7fb;color:#111}
+.app-container{max-width:1100px;margin:24px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 14px 40px rgba(16,24,40,0.06);transition:all .2s ease}
+header{display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:20px}
+.controls button{margin-left:8px;padding:6px 12px;border-radius:6px;border:1px solid #e6eef8;background:#fff}
+.controls .active{background:#1976d2;color:#fff;border-color:#1976d2}
+main{display:flex;margin-top:18px}
+.left{width:36%;padding-right:20px;border-right:1px solid #f0f3f7}
+.right{width:64%;padding-left:20px}
+.light-panel .panel-grid{display:flex;gap:20px}
+.panel-controls{width:48%}
+.panel-status{width:52%;background:linear-gradient(180deg,#ffffff,#fbfdff);padding:14px;border-radius:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
+.panel-controls button{display:block;margin:10px 0;padding:10px 12px;border-radius:8px;border:1px solid #e6eef8;background:#fff;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}
+.panel-controls button:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(25,118,210,0.08)}
+.panel-controls .toggles button{display:inline-block;margin-right:8px}
+.panel-controls button.active{background:#ff9800;color:#fff;border-color:#ff9800}
+.log{max-height:160px;overflow:auto;background:#fff;padding:8px;border-radius:8px;border:1px solid #f0f3f7}
+.log-head{display:flex;align-items:center;gap:8px}
+.clear-log-btn{margin-left:auto;padding:2px 10px;font-size:12px;border-radius:6px;border:1px solid #e6eef8;background:#fff;color:#666;cursor:pointer}
+.clear-log-btn:hover{background:#fff3e0;color:#ef6c00;border-color:#ffb74d}
+.log-item{padding:6px 8px;border-bottom:1px dashed #f0f3f7;font-size:13px}
+.log-item:last-child{border-bottom:none}
+.note{margin-top:12px;color:#666}
+footer{margin-top:16px;color:#777;font-size:13px}
+.instructions ul{list-style:disc;margin-left:18px}
+button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border-radius:6px}
+
+/* progress / timer bars */
+.progress-wrap{height:8px;background:#f0f3f7;border-radius:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,#1976d2,#4facfe);width:0%;transition:width .3s linear}
+.time-bar{height:12px;background:#f0f3f7;border-radius:8px;overflow:hidden;margin-top:6px}
+.time-fill{height:100%;background:linear-gradient(90deg,#ff7043,#ffab91);width:100%;transition:width .3s linear}
+
+/* result list */
+.result-item{padding:12px;border-radius:8px;border:1px solid #f0f3f7;margin-top:10px;background:#fff;transition:transform .12s ease, box-shadow .12s ease}
+.result-item:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(16,24,40,0.06)}
+.result-header{display:flex;justify-content:space-between;align-items:center}
+.result-status.correct{color:green}
+.result-status.wrong{color:#e53935}
+.playback-btn{margin-left:8px;padding:6px 8px;border-radius:6px;border:1px solid #e6eef8;background:#fff}
+
+/* small animations */
+.fade-in{animation:fadeIn .28s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ===== 状态可视化 ===== */
+.status-list{list-style:none;margin:0;padding:0}
+.status-list li{padding:6px 4px;display:flex;align-items:center;gap:8px;border-bottom:1px dashed #f0f3f7;font-size:14px}
+.status-list li:last-child{border-bottom:none}
+.status-list .dot{width:10px;height:10px;border-radius:50%;background:#ccc;transition:all .2s}
+.status-list .dot[data-on="true"]{background:#43a047;box-shadow:0 0 8px rgba(67,160,71,0.6)}
+.status-list li.lit{color:#2e7d32;font-weight:600}
+.status-list li.off{color:#999}
+
+/* ===== 练习模式题目卡片 ===== */
+.question-card{background:#f8fbff;border:1px solid #e6eef8;border-radius:10px;padding:14px;margin:10px 0}
+.q-label{color:#666;font-size:13px}
+.q-trigger{font-size:20px;font-weight:700;color:#1565c0;margin:4px 0 8px}
+.q-meta{font-size:12px;color:#888}
+.q-tip{margin-top:6px;font-size:12px;color:#ef6c00;background:#fff3e0;padding:6px 8px;border-radius:6px}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-row button{padding:8px 14px;border-radius:6px;border:1px solid #e6eef8;background:#fff;cursor:pointer}
+.btn-row button.primary{background:#1976d2;color:#fff;border-color:#1976d2}
+
+/* ===== 练习结果 ===== */
+.practice-result{margin-top:10px;padding:10px 12px;border-radius:8px}
+.practice-result.correct{background:#e8f5e9;border:1px solid #a5d6a7}
+.practice-result.wrong{background:#ffebee;border:1px solid #ffcdd2}
+.pr-status{font-weight:700;margin-bottom:4px}
+.practice-result.correct .pr-status{color:#2e7d32}
+.practice-result.wrong .pr-status{color:#c62828}
+.pr-reason{font-size:13px;color:#444}
+.pr-answer{margin-top:6px;font-size:13px;color:#1565c0}
+
+/* ===== 对照表折叠 ===== */
+.ref-list{margin-top:14px}
+.ref-list summary{cursor:pointer;color:#666;padding:6px 0}
+.ref-list ul{margin:6px 0 0 18px}
+.ref-list li{padding:3px 0;font-size:13px}
+
+/* ===== 结果列表状态色（覆盖旧值） ===== */
+.result-status.correct{color:#2e7d32;font-weight:600}
+.result-status.wrong{color:#c62828;font-weight:600}
+
+@media (max-width:900px){.app-container{margin:8px}}
