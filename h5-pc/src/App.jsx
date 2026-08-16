@@ -298,6 +298,7 @@ export default function App(){
                     <div className="btn-row">
                       <button className="primary" onClick={checkPractice}>检查答案</button>
                       <button onClick={startPractice}>下一题</button>
+                      <button onClick={()=> lightRef.current?.resetForQuestion(false)}>重置灯光</button>
                     </div>
                     {practiceResult && (
                       <div className={`practice-result ${practiceResult.correct? 'correct':'wrong'}`}>
