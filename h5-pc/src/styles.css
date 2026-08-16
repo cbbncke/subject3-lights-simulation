@@ -136,5 +136,6 @@ button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border
 .reward-item span{font-size:13px;color:#666}
 .reward-placeholder{width:180px;height:180px;border:1px dashed #cfd8dc;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#999}
 .reward-item img{width:180px;height:180px;border-radius:8px;object-fit:contain}
+.reward-source-tip{font-size:12px;color:#e65100;background:#fff8e1;border:1px solid #ffe0b2;border-radius:6px;padding:8px 10px;margin:0 0 12px;text-align:center;line-height:1.6}
 
 @media (max-width:900px){.app-container{margin:8px}}

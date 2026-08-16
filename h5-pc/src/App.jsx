@@ -523,6 +523,7 @@ export default function App(){
                 <span>支付宝</span>
               </div>
             </div>
+            <p className="reward-source-tip">对源代码感兴趣？支持 19.9 元即可获取完整源码。付款时请务必备注邮箱（重要的事说三遍：备注邮箱！备注邮箱！备注邮箱！）</p>
             <div className="modal-actions">
               <button onClick={()=>setShowReward(false)}>关闭</button>
             </div>
