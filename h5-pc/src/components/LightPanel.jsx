@@ -226,7 +226,7 @@ const LightPanel = forwardRef(function LightPanel({ mode, lightsData }, ref){
 
   return (
     <div className="light-panel">
-      <h2>灯光面板（PC 桌面优先）</h2>
+      <h2>灯光面板</h2>
       <div className="panel-grid">
         <div className="panel-controls">
           <div className="knob">

@@ -173,7 +173,7 @@ export default function App(){
   return (
     <div className="app-container">
       <header>
-        <h1>灯光通 — 桌面 H5 版（PC 优先）</h1>
+        <h1>灯光通</h1>
         <div className="controls">
           <button onClick={()=>switchMode('practice')} className={mode==='practice'? 'active':''}>练习模式</button>
           <button onClick={()=>switchMode('exam')} className={mode==='exam'? 'active':''}>模拟考试</button>
@@ -199,7 +199,6 @@ export default function App(){
                       <div className="q-label">当前指令：</div>
                       <div className="q-trigger">{practiceQ.trigger}</div>
                       <div className="q-meta">分类：{practiceQ.category}</div>
-                      {practiceQ.tip && <div className="q-tip">易错：{practiceQ.tip}</div>}
                     </div>
                     <div className="btn-row">
                       <button className="primary" onClick={checkPractice}>检查答案</button>
@@ -288,7 +287,7 @@ export default function App(){
           {mode==='exam' && !examRunning && results.length>0 && (
             <div style={{marginTop:12}}>
               <h3>考试结果（复盘）</h3>
-              <div>得分: {score} / {questions.length} {score===questions.length? '🎉 满分': score>=4? '合格':'不合格'}</div>
+              <div>得分: {score} / {questions.length} {score===questions.length? '🎉 满分合格': '❌ 不合格（错一道即不合格）'}</div>
               <div style={{marginTop:8}}>
                 {results.map((r,i)=> (
                   <div key={i} className="result-item">
@@ -310,8 +309,6 @@ export default function App(){
           )}
         </section>
       </main>
-
-      <footer>桌面优先布局 — 鼠标/键盘操作体验优先，暂不做移动适配</footer>
     </div>
   )
 }
