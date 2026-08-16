@@ -40,12 +40,22 @@
 
 ### 语音播报
 
-- 预设规则：优先播放本地预录音频（`public/audio/*.mp3`），缺失时回退浏览器 TTS
+- 预设规则：优先播放本地预录音频（`src/assets/audio/*.mp3`，构建时内联为 base64），播放失败回退浏览器 TTS
 - 自定义规则：不播报语音
+- **移动端音频解锁**：首次用户手势时用临时 Audio 解锁页面媒体，解决移动端 autoplay 策略限制
+- 播报时自动截断上一条，避免重叠
+- 音频文件准备见 [AUDIO_GUIDE.md](./AUDIO_GUIDE.md)
 
 ### 打赏支持
 
-页面右上角"打赏"按钮，点击弹出微信/支付宝二维码，扫码支持开发者。二维码图片内联到单文件 HTML，双击即可显示。
+页面右上角"打赏"按钮，点击弹出微信/支付宝二维码，扫码支持开发者。二维码图片内联到单文件 HTML，双击即可显示。底部含源码获取提示。
+
+### 移动端适配
+
+- 响应式布局（≤768px）：上下布局，灯光面板内部左右分（左状态/右按钮）
+- 移动端禁用 hover 粘滞（`@media (hover:hover)` 仅鼠标设备生效）
+- mp3 语音内联 base64，移动端稳定播放（不受 TTS 限制）
+- 按钮加大，适合手指触摸
 
 ## 快速启动
 
@@ -65,7 +75,7 @@ npm run preview
 
 开发服务器默认地址：http://localhost:5173/
 
-构建产物在 `dist/index.html`（**单文件**，JS/CSS/图片全部内联），可部署到任意静态服务器或**双击直接打开**，无需额外文件。使用 `vite-plugin-singlefile` 插件实现单文件打包，方便分享给学员离线使用。
+构建产物在 `dist/index.html`（**单文件**，JS/CSS/图片/音频全部内联，约 765KB），可部署到任意静态服务器或**双击直接打开**，无需额外文件。使用 `vite-plugin-singlefile` + `assetsInlineLimit` 实现单文件打包（含 mp3 base64 内联），方便分享给学员离线使用。
 
 ## 键盘快捷键
 
@@ -101,11 +111,13 @@ h5-pc/
 │   │   └── lights.json     # 18 条题库
 │   ├── assets/
 │   │   ├── reward-wechat.png   # 微信打赏二维码
-│   │   └── reward-alipay.jpg   # 支付宝打赏二维码
+│   │   ├── reward-alipay.jpg   # 支付宝打赏二维码
+│   │   └── audio/              # 18 条语音 mp3（构建时内联 base64）
 │   ├── utils/
 │   │   └── clipboard.js    # 跨平台剪贴板工具（导出用）
 │   └── components/
 │       └── LightPanel.jsx  # 灯光面板（状态机/操作/评分/日志）
+├── AUDIO_GUIDE.md          # 语音文件准备指南
 ├── dist/                   # 构建产物（单文件 index.html）
 └── package.json
 ```
