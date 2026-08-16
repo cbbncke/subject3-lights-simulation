@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import LightPanel from './components/LightPanel'
 import lightsData from './data/lights.json'
+import { copyText } from './utils/clipboard'
 
 // ===== 规则数据层 =====
 // 预设规则（内置，不可修改，有语音播报）
@@ -97,6 +98,9 @@ export default function App(){
   const [newRuleItems, setNewRuleItems] = useState([])
   // 当前查看的规则 id（null 表示不展开）
   const [viewRuleId, setViewRuleId] = useState(null)
+  // 导出预览的文本（空字符串表示不显示预览弹窗）
+  const [previewData, setPreviewData] = useState(null)
+  const [previewFormat, setPreviewFormat] = useState('text')
 
   // 当前生效规则（预设优先，找不到回退第一套）
   const allRules = [...BUILTIN_RULES, ...customRules]
@@ -258,7 +262,30 @@ export default function App(){
     saveCustomRules(next)
     if(currentRuleId===id) selectRule('builtin-standard')
   }
-
+  // 导出规则到剪贴板（纯 JSON，跨平台通用格式）
+  function exportRule(rule){
+    const data = {
+      name: rule.name,
+      questions: rule.questions.map(q=> ({ trigger: q.trigger, action: q.action }))
+    }
+    setPreviewData(data)
+    setPreviewFormat('text')  // 默认文本格式
+  }
+  // 文本格式：人类可读的指令列表
+  function formatAsText(data){
+    const lines = data.questions.map((q,i)=> `${i+1}. ${q.trigger} → ${q.action}`)
+    return `规则名称：${data.name}\n\n${lines.join('\n')}`
+  }
+  // 当前预览内容（根据格式生成）
+  const previewContent = previewData
+    ? (previewFormat==='json' ? JSON.stringify(previewData, null, 2) : formatAsText(previewData))
+    : ''
+  // 从预览弹窗复制到剪贴板
+  async function copyPreview(){
+    const ok = await copyText(previewContent)
+    if(ok) alert('已复制到剪贴板，可粘贴')
+    else alert('复制失败，请手动复制')
+  }
   function switchMode(m){
     setMode(m)
     setExamRunning(false)
@@ -371,6 +398,7 @@ export default function App(){
                       <div className="rule-item-actions">
                         <button className="mini" onClick={()=>setViewRuleId(viewRuleId===r.id? null: r.id)}>{viewRuleId===r.id? '收起':'查看'}</button>
                         {r.id!==currentRuleId && <button className="mini" onClick={()=>selectRule(r.id)}>切换</button>}
+                        {!r.builtin && <button className="mini" onClick={()=>exportRule(r)}>导出</button>}
                         {!r.builtin && <button className="mini danger" onClick={()=>deleteCustomRule(r.id)}>删除</button>}
                       </div>
                       {viewRuleId===r.id && (
@@ -457,6 +485,23 @@ export default function App(){
         </section>
         )}
       </main>
+      {/* 导出预览弹窗 */}
+      {previewData && (
+        <div className="modal-mask" onClick={()=>setPreviewData(null)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <h3>规则预览（导出内容）</h3>
+            <div className="format-switch">
+              <button className={previewFormat==='text'?'on':''} onClick={()=>setPreviewFormat('text')}>文本格式</button>
+              <button className={previewFormat==='json'?'on':''} onClick={()=>setPreviewFormat('json')}>JSON格式</button>
+            </div>
+            <pre className="preview-code">{previewContent}</pre>
+            <div className="modal-actions">
+              <button onClick={copyPreview}>复制到剪贴板</button>
+              <button onClick={()=>setPreviewData(null)}>关闭</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
