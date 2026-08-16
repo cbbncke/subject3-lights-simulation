@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import LightPanel from './components/LightPanel'
 import lightsData from './data/lights.json'
 import { copyText } from './utils/clipboard'
+import wechatImg from './assets/reward-wechat.png'
+import alipayImg from './assets/reward-alipay.jpg'
 
 // ===== 规则数据层 =====
 // 预设规则（内置，不可修改，有语音播报）
@@ -101,6 +103,8 @@ export default function App(){
   // 导出预览的文本（空字符串表示不显示预览弹窗）
   const [previewData, setPreviewData] = useState(null)
   const [previewFormat, setPreviewFormat] = useState('text')
+  // 打赏弹窗
+  const [showReward, setShowReward] = useState(false)
 
   // 当前生效规则（预设优先，找不到回退第一套）
   const allRules = [...BUILTIN_RULES, ...customRules]
@@ -299,6 +303,7 @@ export default function App(){
           <button onClick={()=>switchMode('practice')} className={mode==='practice'? 'active':''}>练习模式</button>
           <button onClick={()=>switchMode('exam')} className={mode==='exam'? 'active':''}>模拟考试</button>
           <button onClick={()=>switchMode('rules')} className={mode==='rules'? 'active':''}>规则</button>
+          <button className="reward-btn" onClick={()=>setShowReward(true)}>打赏</button>
         </div>
       </header>
 
@@ -498,6 +503,28 @@ export default function App(){
             <div className="modal-actions">
               <button onClick={copyPreview}>复制到剪贴板</button>
               <button onClick={()=>setPreviewData(null)}>关闭</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 打赏弹窗 */}
+      {showReward && (
+        <div className="modal-mask" onClick={()=>setShowReward(false)}>
+          <div className="modal-box reward-box" onClick={e=>e.stopPropagation()}>
+            <h3>打赏支持</h3>
+            <p className="reward-tip">如果这个工具对你有帮助，可以扫码打赏支持开发者</p>
+            <div className="reward-codes">
+              <div className="reward-item">
+                <img src={wechatImg} alt="微信打赏二维码" />
+                <span>微信</span>
+              </div>
+              <div className="reward-item">
+                <img src={alipayImg} alt="支付宝打赏二维码" />
+                <span>支付宝</span>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button onClick={()=>setShowReward(false)}>关闭</button>
             </div>
           </div>
         </div>

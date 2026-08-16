@@ -127,5 +127,14 @@ button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border
 .format-switch button.on{background:#1976d2;color:#fff;border-color:#1976d2}
 .preview-code{background:#f5f7fa;border:1px solid #e6eef8;border-radius:6px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:Consolas,monospace;font-size:13px;flex:1;max-height:50vh}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.reward-btn{margin-left:8px;padding:6px 12px;border-radius:6px;border:1px solid #ffe0b2;background:#fff8e1;color:#e65100;cursor:pointer}
+.reward-btn:hover{background:#ffe0b2}
+.reward-box{max-width:480px}
+.reward-tip{font-size:13px;color:#666;margin:0 0 16px;text-align:center}
+.reward-codes{display:flex;gap:20px;justify-content:center;margin-bottom:12px}
+.reward-item{display:flex;flex-direction:column;align-items:center;gap:8px}
+.reward-item span{font-size:13px;color:#666}
+.reward-placeholder{width:180px;height:180px;border:1px dashed #cfd8dc;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#999}
+.reward-item img{width:180px;height:180px;border-radius:8px;object-fit:contain}
 
 @media (max-width:900px){.app-container{margin:8px}}
