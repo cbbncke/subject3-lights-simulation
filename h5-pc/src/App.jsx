@@ -52,7 +52,7 @@ function sampleExamQuestions(data){
   const first = data.find(d=>d.id==='open_headlight') || data[0]
   const last = data.find(d=>d.id==='close_all') || data[data.length-1]
   const middlePool = data.filter(d=>d!==first && d!==last)
-  const middle = sampleQuestions(middlePool, 3)
+  const middle = sampleQuestions(middlePool, 5)
   return [first, ...middle, last]
 }
 
@@ -64,8 +64,9 @@ function getAudioUrl(trigger){
   return audioModules[`./assets/audio/${normalized}.mp3`] || null
 }
 
-// 播报语音：复用单个 Audio 元素（便于截断）
+// 播报语音：复用单个 Audio 元素（便于截断）；onEnded 在语音播报完毕时回调
 let audioEl = null
+let currentUtterance = null
 const SILENCE_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
 function unlockAudio(){
   // 用临时 Audio 解锁页面媒体（不干扰主 audioEl）
@@ -73,26 +74,39 @@ function unlockAudio(){
   tmp.volume = 0
   tmp.play().then(()=>tmp.pause()).catch(()=>{})
 }
-function playInstruction(q){
+function playInstruction(q, onEnded){
   if(!q) return
   if(!audioEl) audioEl = new Audio()
   const el = audioEl
   el.pause()
+  el.onended = null  // 清除旧回调，避免误触发
+  if(currentUtterance){ currentUtterance.onend = null; currentUtterance = null }
   try{ speechSynthesis.cancel() }catch(e){/* ignore */}
   try{
     const url = getAudioUrl(q.trigger)
     if(url){
       el.src = url
       el.currentTime = 0
+      el.onended = ()=>{ onEnded && onEnded() }
       const p = el.play()
       if(p && p.catch) p.catch(()=>{
         // 本地音频播放失败时回退到语音合成
-        try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.speak(u)}catch(e){/* ignore */}
+        try{
+          const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'
+          u.onend = ()=>{ if(currentUtterance===u) onEnded && onEnded() }
+          currentUtterance = u
+          speechSynthesis.speak(u)
+        }catch(e){ onEnded && onEnded() }
       })
     } else {
-      try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.speak(u)}catch(e){/* ignore */}
+      try{
+        const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'
+        u.onend = ()=>{ if(currentUtterance===u) onEnded && onEnded() }
+        currentUtterance = u
+        speechSynthesis.speak(u)
+      }catch(e){ onEnded && onEnded() }
     }
-  }catch(e){ console.warn('Audio/TTS failed', e) }
+  }catch(e){ console.warn('Audio/TTS failed', e); onEnded && onEnded() }
 }
 
 export default function App(){
@@ -101,6 +115,7 @@ export default function App(){
 
   // ===== 考试模式状态 =====
   const [examRunning, setExamRunning] = useState(false)
+  const [examPhase, setExamPhase] = useState('playing') // 'playing'(语音播报中,不计时) | 'answering'(5秒答题中)
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [timeLeft, setTimeLeft] = useState(5)
@@ -157,13 +172,14 @@ export default function App(){
   // 导致 submittedRef 错乱、切题失败、计时器卡题反复重置。改为在 effect 里监听 timeLeft 触发提交。
   useEffect(()=>{
     if(!examRunning) return
+    if(examPhase !== 'answering') return  // 仅答题阶段倒计时，语音播报中不计时（防抢答）
     if(timeLeft<=0){
       handleSubmitRef.current(false) // 超时自动提交
       return
     }
     const t = setTimeout(()=> setTimeLeft(s=>s-1), 1000)
     return ()=> clearTimeout(t)
-  },[examRunning, currentIndex, timeLeft])
+  },[examRunning, examPhase, currentIndex, timeLeft])
 
   // 移动端音频解锁：首次用户手势时解锁 Audio 元素，后续 useEffect 里才能播放
   useEffect(()=>{
@@ -189,9 +205,25 @@ export default function App(){
     const q = questions[currentIndex]
     if(!q) return
     submittedRef.current = false  // 新题开始，允许提交
-    if(currentRule.builtin) playInstruction(q)  // 仅预设规则播报语音，自定义规则无语音
+    setExamPhase('playing')  // 语音播报中，不计时
+    let entered = false
+    const enterAnswering = ()=>{
+      if(entered) return
+      entered = true
+      setExamPhase('answering')
+      setTimeLeft(5)
+    }
+    if(currentRule.builtin){
+      // 语音播报完毕后才开始 5 秒倒计时（防抢答）
+      playInstruction(q, enterAnswering)
+    } else {
+      // 自定义规则无语音，直接进入答题
+      enterAnswering()
+    }
     const id = setTimeout(()=> lightRef.current?.resetForQuestion(true), 120)
-    return ()=> clearTimeout(id)
+    // 兜底：语音回调未触发时（如音频加载失败），8秒后自动进入答题，避免卡住
+    const fallback = setTimeout(enterAnswering, 8000)
+    return ()=>{ clearTimeout(id); clearTimeout(fallback) }
   },[examRunning, currentIndex, questions])
 
   function startExam(){
@@ -203,7 +235,7 @@ export default function App(){
     setResults([])
     setExamRunning(true)
     setMode('exam')
-    setTimeLeft(5)
+    setExamPhase('playing')  // 语音播报阶段，不计时（timeLeft 由播报 effect 在语音结束后设置）
     setTimeout(()=>{ lightRef.current?.resetForQuestion(false) }, 120)
   }
 
@@ -234,7 +266,7 @@ export default function App(){
       setTimeout(()=> finishExam(), 200)
     } else {
       setCurrentIndex(next)
-      setTimeLeft(5)
+      setExamPhase('playing')  // 切题进入语音播报阶段，timeLeft 由播报 effect 语音结束后设置
       setTimeout(()=> lightRef.current?.resetForQuestion(true), 200)
     }
   }
@@ -455,7 +487,7 @@ export default function App(){
                 <div className="current-rule-tag">当前规则：{currentRule.name}{!currentRule.builtin && '（无语音）'}</div>
                 {!examRunning ? (
                   <>
-                    <p>完全模拟考场：随机 5 题，每题 5 秒限时，结束输出成绩单。</p>
+                    <p>完全模拟考场：开头+结尾固定，中间随机 5 题，共 7 题。每题语音播报完毕后 5 秒限时，结束输出成绩单。</p>
                     <button className="primary" onClick={startExam}>开始 5 题模拟考试</button>
                   </>
                 ) : (
@@ -465,10 +497,16 @@ export default function App(){
                       <div className="progress-bar" style={{width:`${(currentIndex / questions.length) * 100}%`}} />
                     </div>
                     <div style={{marginTop:10}}>当前指令：<strong>{questions[currentIndex]?.trigger}</strong></div>
-                    <div className="time-bar">
-                      <div className="time-fill" style={{width:`${(timeLeft/5)*100}%`}} />
-                    </div>
-                    <div style={{marginTop:6}}>剩余时间: {timeLeft}s</div>
+                    {examPhase==='playing' ? (
+                      <div style={{marginTop:6, color:'#1976d2', fontWeight:600}}>语音播报中，请听完后操作…</div>
+                    ) : (
+                      <>
+                        <div className="time-bar">
+                          <div className="time-fill" style={{width:`${(timeLeft/5)*100}%`}} />
+                        </div>
+                        <div style={{marginTop:6}}>剩余时间: {timeLeft}s</div>
+                      </>
+                    )}
                     <div className="btn-row" style={{marginTop:8}}>
                       <button className="primary" onClick={()=>handleSubmit(true)}>提交当前答案</button>
                       <button onClick={()=> finishExam() }>提前结束</button>
