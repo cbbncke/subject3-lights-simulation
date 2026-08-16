@@ -146,21 +146,6 @@ export default function App(){
   const [previewFormat, setPreviewFormat] = useState('text')
   // 打赏弹窗
   const [showReward, setShowReward] = useState(false)
-  // PWA 安装提示
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-
-  // PWA：捕获安装提示，显示"添加到桌面"按钮
-  useEffect(()=>{
-    const handler = e=>{ e.preventDefault(); setDeferredPrompt(e) }
-    window.addEventListener('beforeinstallprompt', handler)
-    return ()=> window.removeEventListener('beforeinstallprompt', handler)
-  },[])
-  const handleInstall = async ()=>{
-    if(!deferredPrompt) return
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if(outcome==='accepted' || outcome==='dismissed') setDeferredPrompt(null)
-  }
 
   // 当前生效规则（预设优先，找不到回退第一套）
   const allRules = [...BUILTIN_RULES, ...customRules]
@@ -277,7 +262,7 @@ export default function App(){
   // ===== 练习模式 =====
   function startPractice(){
     const pool = practiceCategory==='全部' ? currentQuestions : currentQuestions.filter(q=>{
-      if(practiceCategory==='开灯类') return ['开灯类','近光保持类','远光类'].includes(q.category)
+      if(practiceCategory==='开灯类') return ['开灯类','近光保持类','远光类','远近交替类'].includes(q.category)
       return q.category===practiceCategory
     })
     if(pool.length===0){ alert('该分类暂无题目'); return }
@@ -416,7 +401,6 @@ export default function App(){
           <button onClick={()=>switchMode('exam')} className={mode==='exam'? 'active':''}>模拟考试</button>
           <button onClick={()=>switchMode('rules')} className={mode==='rules'? 'active':''}>规则</button>
           <button className="reward-btn" onClick={()=>setShowReward(true)}>打赏</button>
-          {deferredPrompt && <button className="install-btn" onClick={handleInstall}>添加到桌面</button>}
         </div>
       </header>
 
@@ -433,7 +417,6 @@ export default function App(){
                     <select value={practiceCategory} onChange={e=>setPracticeCategory(e.target.value)} style={{padding:'4px 8px',borderRadius:6,border:'1px solid #e6eef8'}}>
                       <option value="全部">全部</option>
                       <option value="开灯类">开灯类</option>
-                      <option value="远近交替类">远近交替类</option>
                       <option value="停车/故障类">停车/故障类</option>
                       <option value="特殊天气类">特殊天气类</option>
                       <option value="转向类">转向类</option>
