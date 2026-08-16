@@ -1,0 +1,15 @@
+{
+  "name": "灯光通 - 科目三灯光模拟",
+  "short_name": "灯光通",
+  "description": "科目三夜间灯光模拟考试练习工具",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7fb",
+  "theme_color": "#1976d2"
+}
