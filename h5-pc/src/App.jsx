@@ -2,6 +2,37 @@ import React, { useState, useRef, useEffect } from 'react'
 import LightPanel from './components/LightPanel'
 import lightsData from './data/lights.json'
 
+// ===== 规则数据层 =====
+// 预设规则（内置，不可修改，有语音播报）
+const BUILTIN_RULES = [
+  { id:'builtin-standard', name:'标准规则（18项）', builtin:true, questions: lightsData }
+]
+// 自定义规则可勾选的灯光开关（勾选后自动拼接为 action）
+const SWITCHES = ['近光','远光','远近交替','示廓灯','双闪','雾灯','左转','右转','全部复位']
+// 勾选项拼接为 action：含"全部复位"则为全部复位，否则用 + 连接
+function switchesToAction(switches){
+  if(!switches || switches.length===0) return ''
+  if(switches.includes('全部复位')) return '全部复位'
+  return switches.filter(s=>s!=='全部复位').join('+')
+}
+// 预设 action 解析回勾选状态（复合操作无法回填，返回空）
+function actionToSwitches(action){
+  if(!action) return []
+  if(action==='全部复位') return ['全部复位']
+  if(action.includes('→')) return []
+  return action.split('+').map(s=>s.trim()).filter(Boolean)
+}
+
+function loadCustomRules(){
+  try{ return JSON.parse(localStorage.getItem('custom_rules')||'[]') }catch(e){ return [] }
+}
+function saveCustomRules(rules){
+  localStorage.setItem('custom_rules', JSON.stringify(rules))
+}
+function loadCurrentRuleId(){
+  return localStorage.getItem('current_rule_id') || 'builtin-standard'
+}
+
 // 从题库随机抽取 n 道不重复题目
 function sampleQuestions(data, n){
   const pool = [...data]
@@ -39,7 +70,7 @@ function playInstruction(q){
 }
 
 export default function App(){
-  const [mode, setMode] = useState('practice') // 'practice' | 'exam' | 'wrongbook'
+  const [mode, setMode] = useState('practice') // 'practice' | 'exam' | 'rules'
   const lightRef = useRef(null)
 
   // ===== 考试模式状态 =====
@@ -58,8 +89,19 @@ export default function App(){
   const [practiceQ, setPracticeQ] = useState(null)
   const [practiceResult, setPracticeResult] = useState(null)
 
-  // ===== 错题本状态 =====
-  const [wrongList, setWrongList] = useState([])
+  // ===== 规则管理状态 =====
+  const [customRules, setCustomRules] = useState(loadCustomRules)
+  const [currentRuleId, setCurrentRuleId] = useState(loadCurrentRuleId)
+  // 新建自定义规则的临时表单状态
+  const [newRuleName, setNewRuleName] = useState('')
+  const [newRuleItems, setNewRuleItems] = useState([])
+  // 当前查看的规则 id（null 表示不展开）
+  const [viewRuleId, setViewRuleId] = useState(null)
+
+  // 当前生效规则（预设优先，找不到回退第一套）
+  const allRules = [...BUILTIN_RULES, ...customRules]
+  const currentRule = allRules.find(r=>r.id===currentRuleId) || BUILTIN_RULES[0]
+  const currentQuestions = currentRule.questions
 
   // 考试倒计时：每秒 -1；到 0 时自动提交。
   // 注意：不能在 setState updater 里调 handleSubmit（含副作用），StrictMode 下 updater 会被调用两次，
@@ -80,13 +122,13 @@ export default function App(){
     const q = questions[currentIndex]
     if(!q) return
     submittedRef.current = false  // 新题开始，允许提交
-    playInstruction(q)
+    if(currentRule.builtin) playInstruction(q)  // 仅预设规则播报语音，自定义规则无语音
     const id = setTimeout(()=> lightRef.current?.resetForQuestion(true), 120)
     return ()=> clearTimeout(id)
   },[examRunning, currentIndex, questions])
 
   function startExam(){
-    const qs = sampleExamQuestions(lightsData)
+    const qs = sampleExamQuestions(currentQuestions)
     submittedRef.current = false
     setQuestions(qs)
     setCurrentIndex(0)
@@ -102,12 +144,6 @@ export default function App(){
     setExamRunning(false)
     // 考试结束：灯光全部归零
     lightRef.current?.resetForQuestion(false)
-    // 错题归集到 localStorage
-    const wrongs = results.filter(r=>!r.correct)
-    if(wrongs.length){
-      const prev = JSON.parse(localStorage.getItem('wrong_list')||'[]')
-      localStorage.setItem('wrong_list', JSON.stringify([...prev, ...wrongs]))
-    }
   }
 
   // 提交当前题答案：isManual 表示是否用户主动提交
@@ -141,11 +177,11 @@ export default function App(){
 
   // ===== 练习模式 =====
   function startPractice(){
-    const q = sampleQuestions(lightsData, 1)[0]
+    const q = sampleQuestions(currentQuestions, 1)[0]
     setPracticeQ(q)
     setPracticeResult(null)
     setTimeout(()=> lightRef.current?.resetForQuestion(), 120)
-    playInstruction(q)
+    if(currentRule.builtin) playInstruction(q)  // 仅预设规则播报语音
   }
 
   function checkPractice(){
@@ -154,20 +190,78 @@ export default function App(){
     setPracticeResult({ ...res, userLog: lightRef.current?.getLog() || [] })
   }
 
-  // ===== 错题本 =====
-  function loadWrongList(){
-    const list = JSON.parse(localStorage.getItem('wrong_list')||'[]')
-    setWrongList(list)
+  // ===== 规则管理 =====
+  function selectRule(id){
+    setCurrentRuleId(id)
+    localStorage.setItem('current_rule_id', id)
   }
-  function clearWrongList(){
-    localStorage.removeItem('wrong_list')
-    setWrongList([])
+  // 基于预设规则创建：复制预设全部指令到表单，操作解析为勾选状态
+  function loadFromBuiltin(){
+    setNewRuleName('')
+    setNewRuleItems(BUILTIN_RULES[0].questions.map(q=> ({ trigger: q.trigger, switches: actionToSwitches(q.action) })))
+  }
+  // 新建表单：添加一条指令项
+  function addNewItem(){
+    setNewRuleItems(items=>[...items, { trigger:'', switches: [] }])
+  }
+  function updateNewItem(i, field, val){
+    setNewRuleItems(items=> items.map((it,idx)=> idx===i? {...it, [field]:val}: it))
+  }
+  // 切换某条指令项的灯光开关勾选
+  function toggleSwitch(i, sw){
+    setNewRuleItems(items=> items.map((it,idx)=>{
+      if(idx!==i) return it
+      const has = it.switches.includes(sw)
+      // 勾"全部复位"时清空其他；勾其他时取消"全部复位"
+      if(sw==='全部复位'){
+        return { ...it, switches: has? []: ['全部复位'] }
+      }
+      let next = it.switches.filter(s=>s!=='全部复位')
+      next = has? next.filter(s=>s!==sw): [...next, sw]
+      return { ...it, switches: next }
+    }))
+  }
+  function removeNewItem(i){
+    setNewRuleItems(items=> items.filter((_,idx)=> idx!==i))
+  }
+  // 保存自定义规则
+  function saveNewRule(){
+    const name = newRuleName.trim()
+    if(!name){ alert('请输入规则名称'); return }
+    const items = newRuleItems.filter(it=> it.trigger.trim() && it.switches.length>0)
+    if(items.length===0){ alert('至少添加一条指令并勾选灯光操作'); return }
+    const rule = {
+      id: 'custom-'+Date.now(),
+      name,
+      builtin: false,
+      questions: items.map((it,idx)=> ({
+        id: 'q'+idx,
+        trigger: it.trigger.trim(),
+        action: switchesToAction(it.switches),
+        category: '自定义',
+        audio: ''  // 自定义规则无语音
+      }))
+    }
+    const next = [...customRules, rule]
+    setCustomRules(next)
+    saveCustomRules(next)
+    // 保存后切到新规则
+    selectRule(rule.id)
+    // 清空表单
+    setNewRuleName('')
+    setNewRuleItems([])
+  }
+  function deleteCustomRule(id){
+    if(!confirm('确定删除该自定义规则？')) return
+    const next = customRules.filter(r=>r.id!==id)
+    setCustomRules(next)
+    saveCustomRules(next)
+    if(currentRuleId===id) selectRule('builtin-standard')
   }
 
   function switchMode(m){
     setMode(m)
     setExamRunning(false)
-    if(m==='wrongbook') loadWrongList()
   }
 
   return (
@@ -177,17 +271,18 @@ export default function App(){
         <div className="controls">
           <button onClick={()=>switchMode('practice')} className={mode==='practice'? 'active':''}>练习模式</button>
           <button onClick={()=>switchMode('exam')} className={mode==='exam'? 'active':''}>模拟考试</button>
-          <button onClick={()=>switchMode('wrongbook')} className={mode==='wrongbook'? 'active':''}>错题本</button>
+          <button onClick={()=>switchMode('rules')} className={mode==='rules'? 'active':''}>规则</button>
         </div>
       </header>
 
-      <main>
+      <main className={mode==='rules'?'rules-mode':''}>
         <section className="left">
           <div className="instructions">
             {/* ===== 练习模式 ===== */}
             {mode==='practice' && (
               <div className="fade-in">
                 <h2>练习模式</h2>
+                <div className="current-rule-tag">当前规则：{currentRule.name}{!currentRule.builtin && '（无语音）'}</div>
                 {!practiceQ ? (
                   <>
                     <p>随机抽题、不限时，操作后点“检查答案”查看对错与原因。</p>
@@ -216,9 +311,9 @@ export default function App(){
                   </div>
                 )}
                 <details className="ref-list">
-                  <summary>查看指令对照表（{lightsData.length} 项）</summary>
+                  <summary>查看指令对照表（{currentQuestions.length} 项）</summary>
                   <ul>
-                    {lightsData.map((it, idx)=> (
+                    {currentQuestions.map((it, idx)=> (
                       <li key={idx}><strong>{it.trigger}</strong> → {it.action}</li>
                     ))}
                   </ul>
@@ -230,6 +325,7 @@ export default function App(){
             {mode==='exam' && (
               <div className="fade-in">
                 <h2>模拟考试</h2>
+                <div className="current-rule-tag">当前规则：{currentRule.name}{!currentRule.builtin && '（无语音）'}</div>
                 {!examRunning ? (
                   <>
                     <p>完全模拟考场：随机 5 题，每题 5 秒限时，结束输出成绩单。</p>
@@ -255,33 +351,83 @@ export default function App(){
               </div>
             )}
 
-            {/* ===== 错题本 ===== */}
-            {mode==='wrongbook' && (
+            {/* ===== 规则管理 ===== */}
+            {mode==='rules' && (
               <div className="fade-in">
-                <h2>错题本</h2>
-                {wrongList.length===0 ? (
-                  <p>暂无错题记录。</p>
-                ) : (
-                  <>
-                    <p>共 {wrongList.length} 条错题记录。</p>
-                    <button onClick={clearWrongList}>清空错题本</button>
-                    <div style={{marginTop:10}}>
-                      {wrongList.map((r,i)=> (
-                        <div key={i} className="result-item">
-                          <div><strong>{r.question.trigger}</strong> → {r.question.action}</div>
-                          <div className="result-status wrong">错误原因：{r.reason}</div>
+                <h2>规则管理</h2>
+                <p>预设规则不可修改；可新增自定义规则（无语音播报）。练习与考试使用当前选中的规则。</p>
+
+                <div className="rule-list">
+                  {allRules.map(r=> (
+                    <div key={r.id} className={`rule-item ${r.id===currentRuleId? 'active':''}`}>
+                      <div className="rule-item-main">
+                        <span className="rule-name">{r.name}</span>
+                        <span className="rule-badge">{r.builtin? '预设':'自定义'}</span>
+                        {r.id===currentRuleId && <span className="rule-current">当前使用</span>}
+                        {!r.builtin && <span className="rule-noaudio">无语音</span>}
+                        <span className="rule-count">{r.questions.length} 项</span>
+                      </div>
+                      <div className="rule-item-actions">
+                        <button className="mini" onClick={()=>setViewRuleId(viewRuleId===r.id? null: r.id)}>{viewRuleId===r.id? '收起':'查看'}</button>
+                        {r.id!==currentRuleId && <button className="mini" onClick={()=>selectRule(r.id)}>切换</button>}
+                        {!r.builtin && <button className="mini danger" onClick={()=>deleteCustomRule(r.id)}>删除</button>}
+                      </div>
+                      {viewRuleId===r.id && (
+                        <div className="rule-view">
+                          <table className="rule-view-table">
+                            <thead><tr><th>指令</th><th>操作</th></tr></thead>
+                            <tbody>
+                              {r.questions.map((q,i)=> (
+                                <tr key={i}><td>{q.trigger}</td><td>{q.action}</td></tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </>
-                )}
+                  ))}
+                </div>
+
+                <div className="rule-form">
+                  <h3>新增自定义规则</h3>
+                  <div className="form-row">
+                    <label>规则名称</label>
+                    <input value={newRuleName} onChange={e=>setNewRuleName(e.target.value)} placeholder="如：本地简化版" />
+                  </div>
+                  <div className="form-row">
+                    <label>指令项
+                      <button className="mini" onClick={loadFromBuiltin}>基于预设规则填充</button>
+                      <button className="mini" onClick={()=>setNewRuleItems([])}>清空</button>
+                    </label>
+                    {newRuleItems.length===0 && <div className="empty-hint">暂无指令，可点“基于预设规则填充”快速开始，或下方按钮逐条添加</div>}
+                    {newRuleItems.map((it,i)=> (
+                      <div key={i} className="new-item-row">
+                        <input className="ni-trigger" value={it.trigger} onChange={e=>updateNewItem(i,'trigger',e.target.value)} placeholder="指令文本，如：夜间通过急弯" />
+                        <div className="switch-group">
+                          {SWITCHES.map(sw=> (
+                            <label key={sw} className={`switch-chip ${it.switches.includes(sw)? 'on':''}`}>
+                              <input type="checkbox" checked={it.switches.includes(sw)} onChange={()=>toggleSwitch(i,sw)} />
+                              {sw}
+                            </label>
+                          ))}
+                        </div>
+                        <button className="mini danger" onClick={()=>removeNewItem(i)}>移除</button>
+                      </div>
+                    ))}
+                    <button className="mini" onClick={addNewItem}>+ 添加指令项</button>
+                  </div>
+                  <div className="btn-row" style={{marginTop:10}}>
+                    <button className="primary" onClick={saveNewRule}>保存规则</button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </section>
 
+        {mode !== 'rules' && (
         <section className="right">
-          <LightPanel ref={lightRef} mode={mode} lightsData={lightsData} />
+          <LightPanel ref={lightRef} mode={mode} lightsData={currentQuestions} />
 
           {/* 考试复盘 */}
           {mode==='exam' && !examRunning && results.length>0 && (
@@ -308,6 +454,7 @@ export default function App(){
             </div>
           )}
         </section>
+        )}
       </main>
     </div>
   )
