@@ -64,23 +64,31 @@ function getAudioUrl(trigger){
   return audioModules[`./assets/audio/${normalized}.mp3`] || null
 }
 
-// 播报语音：优先本地音频，失败回退浏览器 TTS
-let currentAudio = null
+// 播报语音：复用单个 Audio 元素（便于截断）
+let audioEl = null
+const SILENCE_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+function unlockAudio(){
+  // 用临时 Audio 解锁页面媒体（不干扰主 audioEl）
+  const tmp = new Audio(SILENCE_WAV)
+  tmp.volume = 0
+  tmp.play().then(()=>tmp.pause()).catch(()=>{})
+}
 function playInstruction(q){
   if(!q) return
-  // 截断上一个音频和 TTS，避免重叠
-  if(currentAudio){ currentAudio.pause(); currentAudio=null }
+  if(!audioEl) audioEl = new Audio()
+  const el = audioEl
+  el.pause()
   try{ speechSynthesis.cancel() }catch(e){/* ignore */}
   try{
     const url = getAudioUrl(q.trigger)
     if(url){
-      const audio = new Audio(url)
-      currentAudio = audio
-      audio.play().catch(()=>{
+      el.src = url
+      el.currentTime = 0
+      const p = el.play()
+      if(p && p.catch) p.catch(()=>{
         // 本地音频播放失败时回退到语音合成
         try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.speak(u)}catch(e){/* ignore */}
       })
-      audio.addEventListener('ended', ()=>{ if(currentAudio===audio) currentAudio=null })
     } else {
       try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.speak(u)}catch(e){/* ignore */}
     }
@@ -138,6 +146,24 @@ export default function App(){
     const t = setTimeout(()=> setTimeLeft(s=>s-1), 1000)
     return ()=> clearTimeout(t)
   },[examRunning, currentIndex, timeLeft])
+
+  // 移动端音频解锁：首次用户手势时解锁 Audio 元素，后续 useEffect 里才能播放
+  useEffect(()=>{
+    let unlocked = false
+    function unlock(){
+      if(unlocked) return
+      unlocked = true
+      unlockAudio()
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('touchstart', unlock)
+    }
+    document.addEventListener('click', unlock)
+    document.addEventListener('touchstart', unlock)
+    return ()=>{
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('touchstart', unlock)
+    }
+  },[])
 
   // 题目切换/考试开始：播报指令 + 重置面板 + 重置防重入标志
   useEffect(()=>{
