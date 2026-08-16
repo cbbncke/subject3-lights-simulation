@@ -56,18 +56,33 @@ function sampleExamQuestions(data){
   return [first, ...middle, last]
 }
 
+// 预加载本地音频文件（构建时内联为 base64）
+const audioModules = import.meta.glob('./assets/audio/*.mp3', { eager: true, query: '?url', import: 'default' })
+
+function getAudioUrl(trigger){
+  const normalized = trigger.replace(/[，,]/g, '')
+  return audioModules[`./assets/audio/${normalized}.mp3`] || null
+}
+
 // 播报语音：优先本地音频，失败回退浏览器 TTS
+let currentAudio = null
 function playInstruction(q){
   if(!q) return
+  // 截断上一个音频和 TTS，避免重叠
+  if(currentAudio){ currentAudio.pause(); currentAudio=null }
+  try{ speechSynthesis.cancel() }catch(e){/* ignore */}
   try{
-    if(q.audio){
-      const audio = new Audio(`/audio/${q.audio}`)
+    const url = getAudioUrl(q.trigger)
+    if(url){
+      const audio = new Audio(url)
+      currentAudio = audio
       audio.play().catch(()=>{
-        // 本地音频缺失或播放失败时回退到语音合成
-        try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.cancel(); speechSynthesis.speak(u)}catch(e){/* ignore */}
+        // 本地音频播放失败时回退到语音合成
+        try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.speak(u)}catch(e){/* ignore */}
       })
+      audio.addEventListener('ended', ()=>{ if(currentAudio===audio) currentAudio=null })
     } else {
-      try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.cancel(); speechSynthesis.speak(u)}catch(e){/* ignore */}
+      try{ const u = new SpeechSynthesisUtterance(q.trigger); u.lang='zh-CN'; speechSynthesis.speak(u)}catch(e){/* ignore */}
     }
   }catch(e){ console.warn('Audio/TTS failed', e) }
 }

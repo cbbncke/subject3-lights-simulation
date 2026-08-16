@@ -13,13 +13,11 @@ main{display:flex;margin-top:18px}
 .panel-controls{width:48%}
 .panel-status{width:52%;background:linear-gradient(180deg,#ffffff,#fbfdff);padding:14px;border-radius:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
 .panel-controls button{display:block;margin:10px 0;padding:10px 12px;border-radius:8px;border:1px solid #e6eef8;background:#fff;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}
-.panel-controls button:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(25,118,210,0.08)}
 .panel-controls .toggles button{display:inline-block;margin-right:8px}
 .panel-controls button.active{background:#ff9800;color:#fff;border-color:#ff9800}
 .log{max-height:160px;overflow:auto;background:#fff;padding:8px;border-radius:8px;border:1px solid #f0f3f7}
 .log-head{display:flex;align-items:center;gap:8px}
 .clear-log-btn{margin-left:auto;padding:2px 10px;font-size:12px;border-radius:6px;border:1px solid #e6eef8;background:#fff;color:#666;cursor:pointer}
-.clear-log-btn:hover{background:#fff3e0;color:#ef6c00;border-color:#ffb74d}
 .log-item{padding:6px 8px;border-bottom:1px dashed #f0f3f7;font-size:13px}
 .log-item:last-child{border-bottom:none}
 .note{margin-top:12px;color:#666}
@@ -35,7 +33,6 @@ button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border
 
 /* result list */
 .result-item{padding:12px;border-radius:8px;border:1px solid #f0f3f7;margin-top:10px;background:#fff;transition:transform .12s ease, box-shadow .12s ease}
-.result-item:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(16,24,40,0.06)}
 .result-header{display:flex;justify-content:space-between;align-items:center}
 .result-status.correct{color:green}
 .result-status.wrong{color:#e53935}
@@ -102,9 +99,9 @@ button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border
 .rule-view-table th{background:#f5f7fb;font-weight:600}
 .rule-view-table td:first-child{width:55%}
 .mini{padding:4px 10px;font-size:12px;border-radius:6px;border:1px solid #e6eef8;background:#fff;cursor:pointer}
-.mini:hover{background:#f5f7fb}
+
 .mini.danger{color:#c62828;border-color:#ffcdd2}
-.mini.danger:hover{background:#ffebee}
+
 .rule-form{margin-top:18px;padding:14px;border:1px dashed #cfd8dc;border-radius:10px;background:#fafbfc}
 .rule-form h3{margin:0 0 10px;font-size:15px}
 .form-row{margin-bottom:10px}
@@ -128,7 +125,7 @@ button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border
 .preview-code{background:#f5f7fa;border:1px solid #e6eef8;border-radius:6px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:Consolas,monospace;font-size:13px;flex:1;max-height:50vh}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .reward-btn{margin-left:8px;padding:6px 12px;border-radius:6px;border:1px solid #ffe0b2;background:#fff8e1;color:#e65100;cursor:pointer}
-.reward-btn:hover{background:#ffe0b2}
+
 .reward-box{max-width:480px}
 .reward-tip{font-size:13px;color:#666;margin:0 0 16px;text-align:center}
 .reward-codes{display:flex;gap:20px;justify-content:center;margin-bottom:12px}
@@ -138,4 +135,37 @@ button.primary{background:#1976d2;color:#fff;border:none;padding:8px 12px;border
 .reward-item img{width:180px;height:180px;border-radius:8px;object-fit:contain}
 .reward-source-tip{font-size:12px;color:#e65100;background:#fff8e1;border:1px solid #ffe0b2;border-radius:6px;padding:8px 10px;margin:0 0 12px;text-align:center;line-height:1.6}
 
-@media (max-width:900px){.app-container{margin:8px}}
+/* 仅鼠标设备应用 hover 效果（避免移动端触摸后粘滞高亮） */
+@media (hover:hover){
+  .panel-controls button:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(25,118,210,0.08)}
+  .clear-log-btn:hover{background:#fff3e0;color:#ef6c00;border-color:#ffb74d}
+  .result-item:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(16,24,40,0.06)}
+  .mini:hover{background:#f5f7fb}
+  .mini.danger:hover{background:#ffebee}
+  .reward-btn:hover{background:#ffe0b2}
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width:768px){
+  .app-container{margin:0;padding:10px;border-radius:0;box-shadow:none}
+  header{flex-wrap:wrap;gap:6px}
+  header h1{font-size:16px}
+  .controls{display:flex;flex-wrap:wrap;gap:4px}
+  .controls button{margin:0;padding:6px 10px;font-size:12px}
+  .reward-btn{margin:0}
+  main{flex-direction:column}
+  .left{width:100%;padding-right:0;border-right:none;padding-bottom:12px;border-bottom:1px solid #f0f3f7}
+  .right{width:100%;padding-left:0;padding-top:12px}
+  .rules-mode .left{border-bottom:none}
+  .light-panel .panel-grid{flex-direction:row;gap:10px}
+  .panel-status{order:1;width:48%}
+  .panel-controls{order:2;width:52%}
+  .panel-controls button{padding:10px 8px;font-size:12px}
+  .panel-controls .toggles button{margin:0 6px 6px 0}
+  .modal-box{width:95%;padding:14px;max-height:90vh}
+  .reward-box{max-width:95%}
+  .reward-codes{flex-direction:column;gap:16px}
+  .reward-item img{width:150px;height:150px}
+  .format-switch button{padding:8px 12px}
+  .preview-code{font-size:12px;max-height:40vh}
+}
