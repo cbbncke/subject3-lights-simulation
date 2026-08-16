@@ -189,6 +189,24 @@ const LightPanel = forwardRef(function LightPanel({ mode, lightsData }, ref){
         setState(initialState); setLog([])
       }
     },
+    // 关灯题专用：随机开启 1-3 个灯，模拟考试遗留灯光，让用户关闭
+    randomLightsForClose(){
+      clearTimers()
+      flashDoneRef.current = true
+      const presets = [
+        { lowBeam:true },
+        { lowBeam:true, leftTurn:true },
+        { lowBeam:true, fog:true },
+        { sidelights:true, hazard:true },
+        { lowBeam:true, hazard:true },
+        { lowBeam:true, rightTurn:true },
+        { lowBeam:true, fog:true, hazard:true },
+      ]
+      const picked = presets[Math.floor(Math.random()*presets.length)]
+      setState({ ...initialState, ...picked })
+      const names = { sidelights:'示廓灯', lowBeam:'近光', highBeam:'远光', leftTurn:'左转', rightTurn:'右转', hazard:'双闪', fog:'雾灯' }
+      setLog([{ text:`随机灯光：${Object.keys(picked).map(k=>names[k]).join('、')} 已开启`, ts:Date.now() }])
+    },
     getLog(){
       return [...log].reverse() // 返回从旧到新的顺序，便于复盘
     },

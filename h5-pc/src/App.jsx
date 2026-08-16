@@ -113,6 +113,7 @@ export default function App(){
 
   // ===== 练习模式状态 =====
   const [practiceQ, setPracticeQ] = useState(null)
+  const [practiceCategory, setPracticeCategory] = useState('全部')
   const [practiceResult, setPracticeResult] = useState(null)
 
   // ===== 规则管理状态 =====
@@ -121,6 +122,8 @@ export default function App(){
   // 新建自定义规则的临时表单状态
   const [newRuleName, setNewRuleName] = useState('')
   const [newRuleItems, setNewRuleItems] = useState([])
+  // 当前编辑的规则 id（null 表示新建模式）
+  const [editingRuleId, setEditingRuleId] = useState(null)
   // 当前查看的规则 id（null 表示不展开）
   const [viewRuleId, setViewRuleId] = useState(null)
   // 导出预览的文本（空字符串表示不显示预览弹窗）
@@ -226,11 +229,21 @@ export default function App(){
 
   // ===== 练习模式 =====
   function startPractice(){
-    const q = sampleQuestions(currentQuestions, 1)[0]
+    const pool = practiceCategory==='全部' ? currentQuestions : currentQuestions.filter(q=>{
+      if(practiceCategory==='开灯类') return ['开灯类','近光保持类','远光类'].includes(q.category)
+      return q.category===practiceCategory
+    })
+    if(pool.length===0){ alert('该分类暂无题目'); return }
+    const q = sampleQuestions(pool, 1)[0]
     setPracticeQ(q)
     setPracticeResult(null)
-    setTimeout(()=> lightRef.current?.resetForQuestion(), 120)
-    if(currentRule.builtin) playInstruction(q)  // 仅预设规则播报语音
+    // 关灯题：随机开灯让用户关闭；其他题：重置
+    const isCloseAll = q.action === '全部复位' || q.trigger.includes('关闭所有灯光')
+    setTimeout(()=>{
+      if(isCloseAll) lightRef.current?.randomLightsForClose()
+      else lightRef.current?.resetForQuestion()
+    }, 120)
+    if(currentRule.builtin) playInstruction(q)
   }
 
   function checkPractice(){
@@ -273,30 +286,41 @@ export default function App(){
   function removeNewItem(i){
     setNewRuleItems(items=> items.filter((_,idx)=> idx!==i))
   }
-  // 保存自定义规则
+  // 编辑已有规则：载入表单并切换为编辑模式
+  function editRule(rule){
+    setEditingRuleId(rule.id)
+    setNewRuleName(rule.name)
+    setNewRuleItems(rule.questions.map(q=> ({ trigger: q.trigger, switches: actionToSwitches(q.action) })))
+  }
+  // 保存自定义规则（编辑或新建）
   function saveNewRule(){
     const name = newRuleName.trim()
     if(!name){ alert('请输入规则名称'); return }
     const items = newRuleItems.filter(it=> it.trigger.trim() && it.switches.length>0)
     if(items.length===0){ alert('至少添加一条指令并勾选灯光操作'); return }
-    const rule = {
-      id: 'custom-'+Date.now(),
-      name,
-      builtin: false,
-      questions: items.map((it,idx)=> ({
-        id: 'q'+idx,
-        trigger: it.trigger.trim(),
-        action: switchesToAction(it.switches),
-        category: '自定义',
-        audio: ''  // 自定义规则无语音
-      }))
+    const questions = items.map((it,idx)=> ({
+      id: 'q'+idx,
+      trigger: it.trigger.trim(),
+      action: switchesToAction(it.switches),
+      category: '自定义',
+      audio: ''
+    }))
+    if(editingRuleId){
+      // 编辑已有规则
+      const next = customRules.map(r=> r.id===editingRuleId ? { ...r, name, questions } : r)
+      setCustomRules(next)
+      saveCustomRules(next)
+      selectRule(editingRuleId)
+    } else {
+      // 新建
+      const rule = { id: 'custom-'+Date.now(), name, builtin: false, questions }
+      const next = [...customRules, rule]
+      setCustomRules(next)
+      saveCustomRules(next)
+      selectRule(rule.id)
     }
-    const next = [...customRules, rule]
-    setCustomRules(next)
-    saveCustomRules(next)
-    // 保存后切到新规则
-    selectRule(rule.id)
     // 清空表单
+    setEditingRuleId(null)
     setNewRuleName('')
     setNewRuleItems([])
   }
@@ -356,6 +380,19 @@ export default function App(){
               <div className="fade-in">
                 <h2>练习模式</h2>
                 <div className="current-rule-tag">当前规则：{currentRule.name}{!currentRule.builtin && '（无语音）'}</div>
+                <div className="form-row" style={{marginBottom:8}}>
+                  <label>分类筛选：
+                    <select value={practiceCategory} onChange={e=>setPracticeCategory(e.target.value)} style={{padding:'4px 8px',borderRadius:6,border:'1px solid #e6eef8'}}>
+                      <option value="全部">全部</option>
+                      <option value="开灯类">开灯类</option>
+                      <option value="远近交替类">远近交替类</option>
+                      <option value="停车/故障类">停车/故障类</option>
+                      <option value="特殊天气类">特殊天气类</option>
+                      <option value="转向类">转向类</option>
+                      <option value="结束类">结束类</option>
+                    </select>
+                  </label>
+                </div>
                 {!practiceQ ? (
                   <>
                     <p>随机抽题、不限时，操作后点“检查答案”查看对错与原因。</p>
@@ -445,6 +482,7 @@ export default function App(){
                         <button className="mini" onClick={()=>setViewRuleId(viewRuleId===r.id? null: r.id)}>{viewRuleId===r.id? '收起':'查看'}</button>
                         {r.id!==currentRuleId && <button className="mini" onClick={()=>selectRule(r.id)}>切换</button>}
                         {!r.builtin && <button className="mini" onClick={()=>exportRule(r)}>导出</button>}
+                        {!r.builtin && <button className="mini" onClick={()=>editRule(r)}>编辑</button>}
                         {!r.builtin && <button className="mini danger" onClick={()=>deleteCustomRule(r.id)}>删除</button>}
                       </div>
                       {viewRuleId===r.id && (
@@ -464,7 +502,7 @@ export default function App(){
                 </div>
 
                 <div className="rule-form">
-                  <h3>新增自定义规则</h3>
+                  <h3>{editingRuleId ? '编辑规则' : '新增自定义规则'}</h3>
                   <div className="form-row">
                     <label>规则名称</label>
                     <input value={newRuleName} onChange={e=>setNewRuleName(e.target.value)} placeholder="如：本地简化版" />
@@ -492,7 +530,8 @@ export default function App(){
                     <button className="mini" onClick={addNewItem}>+ 添加指令项</button>
                   </div>
                   <div className="btn-row" style={{marginTop:10}}>
-                    <button className="primary" onClick={saveNewRule}>保存规则</button>
+                    <button className="primary" onClick={saveNewRule}>{editingRuleId ? '保存修改' : '保存规则'}</button>
+                    {editingRuleId && <button onClick={()=>{ setEditingRuleId(null); setNewRuleName(''); setNewRuleItems([]) }}>取消编辑</button>}
                   </div>
                 </div>
               </div>
