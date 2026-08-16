@@ -131,6 +131,21 @@ export default function App(){
   const [previewFormat, setPreviewFormat] = useState('text')
   // 打赏弹窗
   const [showReward, setShowReward] = useState(false)
+  // PWA 安装提示
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+
+  // PWA：捕获安装提示，显示"添加到桌面"按钮
+  useEffect(()=>{
+    const handler = e=>{ e.preventDefault(); setDeferredPrompt(e) }
+    window.addEventListener('beforeinstallprompt', handler)
+    return ()=> window.removeEventListener('beforeinstallprompt', handler)
+  },[])
+  const handleInstall = async ()=>{
+    if(!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if(outcome==='accepted' || outcome==='dismissed') setDeferredPrompt(null)
+  }
 
   // 当前生效规则（预设优先，找不到回退第一套）
   const allRules = [...BUILTIN_RULES, ...customRules]
@@ -369,6 +384,7 @@ export default function App(){
           <button onClick={()=>switchMode('exam')} className={mode==='exam'? 'active':''}>模拟考试</button>
           <button onClick={()=>switchMode('rules')} className={mode==='rules'? 'active':''}>规则</button>
           <button className="reward-btn" onClick={()=>setShowReward(true)}>打赏</button>
+          {deferredPrompt && <button className="install-btn" onClick={handleInstall}>添加到桌面</button>}
         </div>
       </header>
 
