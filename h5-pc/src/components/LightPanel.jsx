@@ -52,7 +52,7 @@ const LightPanel = forwardRef(function LightPanel({ mode, lightsData }, ref){
     if(!state.sidelights && !state.lowBeam){
       setState(s=>({...s, sidelights:true})); pushLog('示廓')
     } else if(state.sidelights && !state.lowBeam){
-      setState(s=>({...s, lowBeam:true})); pushLog('近光')
+      setState(s=>({...s, lowBeam:true, highBeam:false})); pushLog('近光')
     } else {
       setState(initialState); pushLog('全部OFF')
     }
@@ -182,9 +182,13 @@ const LightPanel = forwardRef(function LightPanel({ mode, lightsData }, ref){
     // keepState=false 时连同灯光状态一起复位（考试开始/结束、练习模式）。
     resetForQuestion(keepState=false){
       clearTimers()
+      // 检测远近交替动画是否未完成（被打断时灯光可能停在远光）
+      const wasFlashing = !flashDoneRef.current
       flashDoneRef.current = true
       if(keepState){
         setLog([])
+        // 动画被打断时强制停在近光，避免远光延续到下一题影响评分
+        if(wasFlashing) setState(s=>({...s, highBeam:false, lowBeam:true}))
       } else {
         setState(initialState); setLog([])
       }
@@ -209,28 +213,6 @@ const LightPanel = forwardRef(function LightPanel({ mode, lightsData }, ref){
     },
     getLog(){
       return [...log].reverse() // 返回从旧到新的顺序，便于复盘
-    },
-    replayLog(entries, speed=1){
-      if(!entries || !entries.length) return
-      clearTimers()
-      flashDoneRef.current = true
-      setState(initialState); setLog([])
-      const baseTs = entries[0].ts
-      entries.forEach((ent)=>{
-        const delay = Math.max(0, (ent.ts - baseTs)/speed)
-        after(delay, ()=>{
-          const txt = ent.text
-          if(txt.includes('示廓')){ setState(s=>({...s, sidelights:true})); pushLog('示廓（回放）') }
-          if(txt.includes('近光')){ setState(s=>({...s, lowBeam:true, highBeam:false})); pushLog('近光（回放）') }
-          if(txt.includes('远光')){ setState(s=>({...s, highBeam:true, lowBeam:false})); pushLog('远光（回放）') }
-          if(txt.includes('回近光')){ setState(s=>({...s, highBeam:false, lowBeam:true})); pushLog('回近光（回放）') }
-          if(txt.includes('远近交替')){ pushLog('远近交替（回放）'); /* visual only */ }
-          if(txt.includes('左转')){ setState(s=>({...s, leftTurn:true})); pushLog('左转（回放）') }
-          if(txt.includes('右转')){ setState(s=>({...s, rightTurn:true})); pushLog('右转（回放）') }
-          if(txt.includes('双闪')){ setState(s=>({...s, hazard:true})); pushLog('双闪（回放）') }
-          if(txt.includes('雾')){ setState(s=>({...s, fog:true})); pushLog('雾灯（回放）') }
-        })
-      })
     }
   }))
 

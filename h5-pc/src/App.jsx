@@ -30,7 +30,12 @@ function loadCustomRules(){
   try{ return JSON.parse(localStorage.getItem('custom_rules')||'[]') }catch(e){ return [] }
 }
 function saveCustomRules(rules){
-  localStorage.setItem('custom_rules', JSON.stringify(rules))
+  try{
+    localStorage.setItem('custom_rules', JSON.stringify(rules))
+  }catch(e){
+    // 配额超限或浏览器禁用 localStorage 时静默失败，避免页面崩溃
+    console.warn('保存自定义规则失败:', e)
+  }
 }
 function loadCurrentRuleId(){
   return localStorage.getItem('current_rule_id') || 'builtin-standard'
@@ -54,6 +59,34 @@ function sampleExamQuestions(data){
   const middlePool = data.filter(d=>d!==first && d!==last)
   const middle = sampleQuestions(middlePool, 5)
   return [first, ...middle, last]
+}
+
+// 练习"全部"分类加权抽题：简单题低频，常考题高频
+// 目的：减少"开启前照灯/关闭所有灯光/左右转弯"等简单题的出现频率，
+//       让用户多练习会车、跟车、急弯、远近交替等常考且易错题。
+function getPracticeWeight(q){
+  const t = q.trigger
+  // 低频简单题（权重 1）：开头开灯、结尾关灯
+  if(t.includes('开启前照灯') || t.includes('关闭所有灯光')) return 1
+  // 中频简单题（权重 2）：左右转弯
+  if(t.includes('左转弯') || t.includes('右转弯')) return 2
+  // 高频常考题（权重 3）：会车、跟车、急弯、人行横道、停车、雾天、远近交替等
+  return 3
+}
+// 加权随机抽 1 条，并排除上一题（lastTrigger）避免连续重复
+function weightedSample(pool, lastTrigger){
+  // 过滤掉上一题，保证相邻两题不重复
+  let candidates = lastTrigger ? pool.filter(q=>q.trigger!==lastTrigger) : pool
+  // 回退：池中只有一题时允许重复（否则无法抽题）
+  if(candidates.length===0) candidates = pool
+  const weights = candidates.map(getPracticeWeight)
+  const total = weights.reduce((a,b)=>a+b, 0)
+  let r = Math.random() * total
+  for(let i=0;i<candidates.length;i++){
+    r -= weights[i]
+    if(r<=0) return candidates[i]
+  }
+  return candidates[candidates.length-1]
 }
 
 // 预加载本地音频文件（构建时内联为 base64）
@@ -112,6 +145,7 @@ function playInstruction(q, onEnded){
 export default function App(){
   const [mode, setMode] = useState('practice') // 'practice' | 'exam' | 'rules'
   const lightRef = useRef(null)
+  const lastPracticeTrigger = useRef(null)  // 练习模式上一题 trigger，用于加权抽题避免连续重复
 
   // ===== 考试模式状态 =====
   const [examRunning, setExamRunning] = useState(false)
@@ -266,7 +300,9 @@ export default function App(){
       return q.category===practiceCategory
     })
     if(pool.length===0){ alert('该分类暂无题目'); return }
-    const q = sampleQuestions(pool, 1)[0]
+    const isAll = practiceCategory==='全部'
+    const q = isAll ? weightedSample(pool, lastPracticeTrigger.current) : sampleQuestions(pool, 1)[0]
+    lastPracticeTrigger.current = q.trigger
     setPracticeQ(q)
     setPracticeResult(null)
     // 关灯题：随机开灯让用户关闭；其他题：重置
