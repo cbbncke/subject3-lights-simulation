@@ -7,7 +7,7 @@ import { copyText } from './utils/clipboard'
 // ===== 规则数据层 =====
 // 预设规则（内置，不可修改，有语音播报）
 const BUILTIN_RULES = [
-  { id:'builtin-standard', name:'标准规则（18项）', builtin:true, questions: lightsData }
+  { id:'builtin-standard', name:'标准规则（14项）', builtin:true, questions: lightsData }
 ]
 // 自定义规则可勾选的灯光开关（勾选后自动拼接为 action）
 const SWITCHES = ['近光','远光','远近交替','示廓灯','双闪','雾灯','左转','右转','全部复位']
@@ -61,15 +61,13 @@ function sampleExamQuestions(data){
 }
 
 // 练习"全部"分类加权抽题：简单题低频，常考题高频
-// 目的：减少"开启前照灯/关闭所有灯光/左右转弯"等简单题的出现频率，
+// 目的：减少"开启前照灯/关闭所有灯光"等简单题的出现频率，
 //       让用户多练习会车、跟车、急弯、远近交替等常考且易错题。
 function getPracticeWeight(q){
   const t = q.trigger
   // 低频简单题（权重 1）：开头开灯、结尾关灯
   if(t.includes('开启前照灯') || t.includes('关闭所有灯光')) return 1
-  // 中频简单题（权重 2）：左右转弯
-  if(t.includes('左转弯') || t.includes('右转弯')) return 2
-  // 高频常考题（权重 3）：会车、跟车、急弯、人行横道、停车、雾天、远近交替等
+  // 高频常考题（权重 3）：会车、跟车、急弯、人行横道、停车、远近交替等
   return 3
 }
 // 加权随机抽 1 条，并排除上一题（lastTrigger）避免连续重复
@@ -452,8 +450,6 @@ export default function App(){
                       <option value="全部">全部</option>
                       <option value="开灯类">开灯类</option>
                       <option value="停车/故障类">停车/故障类</option>
-                      <option value="特殊天气类">特殊天气类</option>
-                      <option value="转向类">转向类</option>
                       <option value="结束类">结束类</option>
                     </select>
                   </label>
